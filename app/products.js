@@ -24,10 +24,20 @@ const upload = multer({storage});
 
 const createRouter = () => {
     router.get("/", async (req, res) => {
-        const products = await Product.find()
-        .populate("category", "title");
-        res.send(products);
+        await Product.find(req.query)
+            .populate("category", "title").sort({price: +1})
+            .exec((err, products) => {
+                products.filter(product => {
+                    return product.category._id.equals(req.query.category);
+                });
+                if (products) {
+                    res.send(products)
+                } else {
+                    res.status(404).send("not found");
+                }
+            });
     });
+
     router.post("/", [upload.single("image"), auth, permit("admin")], async (req, res) => {
         const product = {...req.body};
         if (req.file) {
@@ -45,6 +55,9 @@ const createRouter = () => {
             }
         }
     });
+
+    
+
     router.get("/:id", auth, async (req, res) => {
         try {
             const product = await Product.findById(req.params.id)
@@ -58,6 +71,7 @@ const createRouter = () => {
             res.sendStatus(500);
         }      
     });
+    
     router.put("/:id", auth, async (req, res) => {
         await Product.findByIdAndUpdate(
             req.params.id,
