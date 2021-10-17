@@ -10,7 +10,7 @@ const ValidationError = require("mongoose").Error.ValidationError;
 const permit = require('../middleware/permit');
 const router = express.Router();
 
-
+const PRODUCT_PAGE_COUNT = 15;
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, config.uploadPath)
@@ -56,6 +56,55 @@ const createRouter = () => {
         }
     });
 
+    router.get('/filters', filter, async (req, res) => {
+        let page = 0;
+        let limit = PRODUCT_PAGE_COUNT;
+        ProductFilter.find()
+            .skip(page * limit)
+            .limit(limit)
+            .exec((err, doc) => {
+                if (err) {
+                    return res.send(err);
+                }
+                ProductFilter.estimatedDocumentCount().exec((count_error, count) => {
+                    if (err) {
+                        return res.send(count_error);
+                    }
+                    return res.send({
+                        items: count,
+                        pages: Math.ceil(count / limit),
+                        page: page,
+                        pageSize: doc.length,
+                        products: doc,
+                    });
+                });
+            });
+    });
+    
+    router.get('/pages', filter, (req, res) => {
+        let page = parseInt(req.query.page) || 0;
+        let limit = parseInt(req.query.limit) || PRODUCT_PAGE_COUNT;
+        ProductFilter.find()
+            .skip(page * limit)
+            .limit(limit)
+            .exec((err, doc) => {
+                if (err) {
+                    return res.send(err);
+                }
+                ProductFilter.estimatedDocumentCount().exec((count_error, count) => {
+                    if (err) {
+                        return res.send(count_error);
+                    }
+                    return res.send({
+                        items: count,
+                        pages: Math.ceil(count / limit),
+                        page: page,
+                        pageSize: doc.length,
+                        products: doc,
+                    });
+                });
+            });
+    });
     
 
     router.get("/:id", auth, async (req, res) => {
@@ -70,6 +119,23 @@ const createRouter = () => {
         } catch (err) {
             res.sendStatus(500);
         }      
+    });
+
+    router.get('/last', async (req, res) => {
+        try {
+            const lastFourProducts = await Product.find().sort({ _id: -1 }).limit(4);
+            if (req.query.sort) {
+                if (req.query.order === 'asc') {
+                    res.send(sortArrAsc(lastFourProducts, req.query.sort));
+                } else {
+                    res.send(sortArrDesc(lastFourProducts, req.query.sort));
+                }
+            } else {
+                res.send(lastFourProducts);
+            }
+        } catch (error) {
+            res.status(500).send(error);
+        }
     });
     
     router.put("/:id", auth, async (req, res) => {

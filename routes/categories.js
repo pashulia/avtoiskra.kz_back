@@ -11,6 +11,7 @@ const createRouter = () => {
             res.sendStatus(500);
         }
     });
+    
     router.post('/', async (req, res) => {
         const category = new Category(req.body);
         try {
