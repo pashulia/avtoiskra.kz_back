@@ -17,6 +17,11 @@ const ProductSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: "Category",
         required: true
+    },
+    factory: {
+        type: Schema.Types.ObjectId,
+        ref: "Factory",
+        required: true
     }
 });
 
